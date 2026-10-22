@@ -19,6 +19,7 @@ import com.tencent.kuikly.compose.foundation.layout.padding
 import com.tencent.kuikly.compose.foundation.layout.width
 import com.tencent.kuikly.compose.foundation.shape.RoundedCornerShape
 import com.tencent.kuikly.compose.material3.Button
+import com.tencent.kuikly.compose.material3.ButtonDefaults
 import com.tencent.kuikly.compose.material3.Text
 import com.tencent.kuikly.compose.setContent
 import com.tencent.kuikly.compose.ui.Modifier
@@ -61,12 +62,17 @@ private fun SignaturePadComposeDemo() {
         )
         Spacer(modifier = Modifier.height(16.dp))
         Row(modifier = Modifier.fillMaxWidth()) {
+            // Surface 在 modifier 之后绘制 containerColor，Modifier.background 会被主题主色盖住。
             Button(
                 onClick = { padState.clear() },
                 modifier = Modifier
                     .weight(1f)
-                    .height(44.dp)
-                    .background(Color(0xFFF2F4F7), RoundedCornerShape(8.dp)),
+                    .height(44.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFF2F4F7),
+                    contentColor = Color(0xFF1F2328),
+                ),
             ) {
                 Text(text = "清除", fontSize = 16.sp, color = Color(0xFF1F2328))
             }
@@ -81,8 +87,12 @@ private fun SignaturePadComposeDemo() {
                 },
                 modifier = Modifier
                     .weight(1f)
-                    .height(44.dp)
-                    .background(Color(0xFF1F6FEB), RoundedCornerShape(8.dp)),
+                    .height(44.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF1F6FEB),
+                    contentColor = Color.White,
+                ),
             ) {
                 Text(text = "导出", fontSize = 16.sp, color = Color.White)
             }
