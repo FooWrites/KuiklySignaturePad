@@ -16,6 +16,7 @@ import com.tencent.kuikly.compose.foundation.border
 import com.tencent.kuikly.compose.foundation.gestures.awaitEachGesture
 import com.tencent.kuikly.compose.foundation.gestures.awaitFirstDown
 import com.tencent.kuikly.compose.foundation.layout.Box
+import com.tencent.kuikly.compose.foundation.layout.BoxScope
 import com.tencent.kuikly.compose.foundation.layout.fillMaxSize
 import com.tencent.kuikly.compose.foundation.layout.padding
 import com.tencent.kuikly.compose.foundation.shape.RoundedCornerShape
@@ -145,13 +146,13 @@ fun ComposeSignaturePad(
             .pointerInput(state, pixelsPerDp) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
-                    down.consume()
+                    // 不能 consume。Kuikly 2.4 的 SuperTouchManager 在移动被消费后会把
+                    // 同步 touchMove 改成异步，这一笔后面的点不再进来，只剩一个点。
                     state.begin(down.position.x / pixelsPerDp, down.position.y / pixelsPerDp)
                     try {
                         while (true) {
                             val event = awaitPointerEvent()
                             val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                            change.consume()
                             if (!change.pressed) {
                                 break
                             }
@@ -169,24 +170,43 @@ fun ComposeSignaturePad(
         }
         Canvas(modifier = Modifier.fillMaxSize()) {
             state.activeRevision
-            state.ink.activeStroke?.let { drawInk(listOf(it), penColor, penWidth) }
+            drawInk(listOfNotNull(state.ink.activeStroke), penColor, penWidth)
         }
-        if (state.isEmpty && placeholder.isNotEmpty()) {
-            Text(
-                text = placeholder,
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(horizontal = 12.dp),
-                color = placeholderColor,
-                fontSize = placeholderFontSize,
-                textAlign = TextAlign.Center,
-            )
-        }
+        SignaturePlaceholder(
+            state = state,
+            placeholder = placeholder,
+            placeholderFontSize = placeholderFontSize,
+            placeholderColor = placeholderColor,
+        )
+    }
+}
+
+@Composable
+private fun BoxScope.SignaturePlaceholder(
+    state: SignaturePadState,
+    placeholder: String,
+    placeholderFontSize: TextUnit,
+    placeholderColor: Color,
+) {
+    // isEmpty 必须在子组合里读。父级读它会在落笔时重组，Kuikly 的 pointerInput
+    // 每次 update 都重置协程，第一笔只留下按下的那个点。
+    if (state.isEmpty && placeholder.isNotEmpty()) {
+        Text(
+            text = placeholder,
+            modifier = Modifier
+                .align(Alignment.Center)
+                .padding(horizontal = 12.dp),
+            color = placeholderColor,
+            fontSize = placeholderFontSize,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
 private fun DrawScope.drawInk(strokes: List<List<SignaturePoint>>, color: Color, width: Dp) {
     if (strokes.isEmpty()) {
+        // 与自研画布相同：Android 的 canvas reset 不 invalidate，空绘制留着上一帧。
+        drawPath(path = Path(), color = Color.Transparent, style = Stroke(width = 1f))
         return
     }
     val scale = density

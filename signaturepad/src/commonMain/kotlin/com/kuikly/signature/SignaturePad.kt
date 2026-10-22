@@ -152,8 +152,15 @@ class SignaturePadView : ViewContainer<SignaturePadAttr, SignaturePadEvent>() {
             }) { context, _, _ ->
                 ctx.finishedRevision
                 ctx.prepareInk(context)
-                for (stroke in ctx.ink.finishedStrokes) {
-                    drawStroke(context, stroke)
+                val strokes = ctx.ink.finishedStrokes
+                if (strokes.isEmpty()) {
+                    // Android KRCanvasView.reset() 只清空指令，stroke/fill 才会 invalidate。
+                    // 清除后如果不再画，上一帧墨迹会留在屏幕上。
+                    context.strokeEmpty()
+                } else {
+                    for (stroke in strokes) {
+                        drawStroke(context, stroke)
+                    }
                 }
             }
             Canvas({
@@ -162,9 +169,13 @@ class SignaturePadView : ViewContainer<SignaturePadAttr, SignaturePadEvent>() {
                 }
             }) { context, _, _ ->
                 ctx.activeRevision
-                val stroke = ctx.ink.activeStroke ?: return@Canvas
                 ctx.prepareInk(context)
-                drawStroke(context, stroke)
+                val stroke = ctx.ink.activeStroke
+                if (stroke == null) {
+                    context.strokeEmpty()
+                } else {
+                    drawStroke(context, stroke)
+                }
             }
         }
         vif({ ctx.empty && ctx.placeholderText.isNotEmpty() }) {
@@ -270,6 +281,12 @@ class SignaturePadView : ViewContainer<SignaturePadAttr, SignaturePadEvent>() {
     companion object {
         const val DEFAULT_EXPORT_TIMEOUT_MS = 3000
     }
+}
+
+/** 发出一次空描边，迫使不刷新空帧的渲染层丢掉上一帧。路径里没有点，画面上不会多一笔。 */
+private fun CanvasContext.strokeEmpty() {
+    beginPath()
+    stroke()
 }
 
 private fun drawStroke(context: CanvasContext, stroke: List<SignaturePoint>) {
