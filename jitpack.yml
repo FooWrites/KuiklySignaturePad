@@ -1,0 +1,4 @@
+jdk:
+  - openjdk17
+install:
+  - ./gradlew :signaturepad:publishToMavenLocal :signaturepad-compose:publishToMavenLocal --no-daemon --stacktrace

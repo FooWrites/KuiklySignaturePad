@@ -1,0 +1,12 @@
+{
+  "githubUrl": "https://github.com/FooWrites/KuiklySignaturePad",
+  "componentName": "SignaturePadCompose",
+  "componentDescription": "Kuikly 手写签名板（Compose DSL）",
+  "componentType": "KuiklyView",
+  "developer": "FooWrites",
+  "Android": true,
+  "iOS": true,
+  "Ohos": false,
+  "Js": true,
+  "sDynamic": true
+}
