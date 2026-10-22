@@ -1,0 +1,14 @@
+{
+  "name": "entry",
+  "version": "1.0.0",
+  "description": "Please describe the basic information.",
+  "main": "",
+  "author": "",
+  "license": "",
+  "dependencies": {
+    // ohpm 上的 Kuikly 2.4.2 渲染包，对应 KMP 制品 2.4.2-2.0.21。壳仍是结构，未执行 ohpm / hvigor。
+    "@kuikly-open/render": "2.4.2",
+    "@ohos/apng": "^1.0.0-rc.8",
+    "libentry.so": "file:./src/main/cpp/types/libentry"
+  }
+}

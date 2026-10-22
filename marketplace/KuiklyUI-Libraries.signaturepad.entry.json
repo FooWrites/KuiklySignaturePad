@@ -1,12 +1,14 @@
 {
   "githubUrl": "https://github.com/FooWrites/KuiklySignaturePad",
+  "examples": [
+    "https://github.com/FooWrites/KuiklySignaturePad"
+  ],
   "componentName": "SignaturePad",
   "componentDescription": "Kuikly 手写签名板（自研 DSL）",
   "componentType": "KuiklyView",
   "developer": "FooWrites",
   "Android": true,
   "iOS": true,
-  "Ohos": false,
   "Js": true,
   "sDynamic": true
 }

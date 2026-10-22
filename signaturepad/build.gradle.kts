@@ -48,7 +48,7 @@ publishing {
     publications.withType<MavenPublication>().configureEach {
         pom {
             name.set("signaturepad")
-            description.set("Kuikly signature pad — traditional DSL.")
+            description.set("Kuikly signature pad — 自研 DSL.")
             url.set("https://github.com/FooWrites/KuiklySignaturePad")
             licenses {
                 license {

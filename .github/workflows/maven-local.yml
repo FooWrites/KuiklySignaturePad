@@ -16,10 +16,10 @@ jobs:
           distribution: temurin
           java-version: "17"
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
       - name: Install Android platform 34
         run: sdkmanager --install "platforms;android-34" "build-tools;34.0.0"
       - name: Publish libraries to Maven Local
         run: ./gradlew :signaturepad:publishToMavenLocal :signaturepad-compose:publishToMavenLocal --no-daemon --stacktrace
-      - name: Assemble demo
-        run: ./gradlew :demo:assemble --no-daemon --stacktrace
+      - name: Assemble demo and Android host
+        run: ./gradlew :demo:assemble :androidApp:assembleDebug --no-daemon --stacktrace

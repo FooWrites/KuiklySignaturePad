@@ -11,3 +11,10 @@ local.properties
 .DS_Store
 captures/
 *.hprof
+iosApp/Pods/
+iosApp/*.xcworkspace/
+iosApp/*.xcodeproj/
+ohosApp/oh_modules/
+ohosApp/**/oh_modules/
+ohosApp/.hvigor/
+ohosApp/**/.hvigor/
