@@ -25,6 +25,9 @@ kotlin {
         commonMain.dependencies {
             api("com.tencent.kuikly-open:core:$kuiklyVersion")
         }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+        }
     }
 }
 

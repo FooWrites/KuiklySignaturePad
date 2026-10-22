@@ -9,21 +9,26 @@ import com.tencent.kuikly.core.base.ViewContainer
 import com.tencent.kuikly.core.base.ViewConst
 import com.tencent.kuikly.core.base.ViewRef
 import com.tencent.kuikly.core.base.event.Event
+import com.tencent.kuikly.core.base.event.TouchParams
 import com.tencent.kuikly.core.directives.vif
 import com.tencent.kuikly.core.nvi.serialization.json.JSONObject
 import com.tencent.kuikly.core.reactive.handler.observable
+import com.tencent.kuikly.core.timer.clearTimeout
+import com.tencent.kuikly.core.timer.setTimeout
 import com.tencent.kuikly.core.views.Canvas
-import com.tencent.kuikly.core.views.CanvasView
+import com.tencent.kuikly.core.views.CanvasContext
+import com.tencent.kuikly.core.views.DivView
 import com.tencent.kuikly.core.views.Text
 import com.tencent.kuikly.core.views.View
 
 /**
- * 手写签名板。墨迹画在 Canvas 上，占位文字是同级 Text，导出时不会进入图片。
+ * 手写签名板。墨迹画在两层 Canvas 上：已完成的笔画一层，正在书写的一笔一层，
+ * 书写时只重绘当前笔画。占位文字是同级 Text，不进入导出结果。
  */
 class SignaturePadView : ViewContainer<SignaturePadAttr, SignaturePadEvent>() {
-    private val strokes = ArrayList<ArrayList<StrokePoint>>()
-    private var activeStroke: ArrayList<StrokePoint>? = null
-    private var canvasRef: ViewRef<CanvasView>? = null
+    private val ink = SignatureStrokes()
+    private var surfaceRef: ViewRef<DivView>? = null
+    private var activePointer: Long? = null
 
     private var placeholderText by observable("")
     private var placeholderSize by observable(16f)
@@ -31,7 +36,8 @@ class SignaturePadView : ViewContainer<SignaturePadAttr, SignaturePadEvent>() {
     private var inkWidth by observable(3f)
     private var paperColor by observable(Color.WHITE)
     private var empty by observable(true)
-    private var revision by observable(0)
+    private var finishedRevision by observable(0)
+    private var activeRevision by observable(0)
 
     override fun createAttr(): SignaturePadAttr {
         return SignaturePadAttr().apply {
@@ -53,29 +59,72 @@ class SignaturePadView : ViewContainer<SignaturePadAttr, SignaturePadEvent>() {
         mountSurface()
     }
 
+    fun isEmpty(): Boolean = ink.isEmpty
+
     fun clear() {
-        strokes.clear()
-        activeStroke = null
+        val wasEmpty = ink.isEmpty
+        ink.clear()
+        activePointer = null
         empty = true
-        revision++
+        finishedRevision++
+        activeRevision++
+        if (!wasEmpty) {
+            event.changeHandler?.invoke(true)
+        }
     }
 
+    /** 点序列 JSON，见 [SignatureStrokes.toJson]。所有平台可用。 */
+    fun toJson(): String = ink.toJson(flexNode.layoutFrame.width, flexNode.layoutFrame.height)
+
+    /** 当前笔迹的 SVG 文档，所有平台可用。[withPaper] 为 false 时背景透明。 */
+    fun toSvg(withPaper: Boolean = true): String = ink.toSvg(
+        width = flexNode.layoutFrame.width,
+        height = flexNode.layoutFrame.height,
+        penColor = inkColor.hexColor,
+        penWidth = inkWidth,
+        paperColor = if (withPaper) paperColor.hexColor else null,
+    )
+
+    /**
+     * 当前宿主是否支持位图导出。Kuikly 2.4.2 只有鸿蒙渲染层实现了 `toImage`；
+     * 宿主渲染层升级到 2.17.0 及以上后可用 [SignaturePadAttr.bitmapExportOnAllPlatforms] 打开其他平台。
+     */
+    fun isBitmapExportSupported(): Boolean {
+        return attr.bitmapExportEverywhere || getPager().pageData.isOhOs
+    }
+
+    /** 位图导出为 data URI。不支持的平台立即回调 null，见 [exportImage]。 */
     fun toImage(callback: (String?) -> Unit) {
-        exportImage(DeclarativeBaseView.ImageType.DATA_URI, 1, callback)
+        exportImage(DeclarativeBaseView.ImageType.DATA_URI, 1, DEFAULT_EXPORT_TIMEOUT_MS, callback)
     }
 
+    /**
+     * 位图导出。回调恰好触发一次：不支持的平台立即回调 null，
+     * 渲染层在 [timeoutMs] 内没有响应时也回调 null。
+     */
     fun exportImage(
         type: DeclarativeBaseView.ImageType,
         sampleSize: Int = 1,
+        timeoutMs: Int = DEFAULT_EXPORT_TIMEOUT_MS,
         callback: (String?) -> Unit,
     ) {
-        val canvas = canvasRef?.view
-        if (canvas == null) {
+        val surface = surfaceRef?.view
+        if (surface == null || !isBitmapExportSupported()) {
             callback(null)
             return
         }
-        canvas.toImage(type, sampleSize) { payload ->
-            callback(payload.exportData())
+        var settled = false
+        var timer: String? = null
+        val settle = { data: String? ->
+            if (!settled) {
+                settled = true
+                timer?.let { clearTimeout(it) }
+                callback(data)
+            }
+        }
+        timer = setTimeout(pagerId, timeoutMs) { settle(null) }
+        surface.toImage(type, sampleSize) { payload ->
+            settle(payload.exportData())
         }
     }
 
@@ -85,46 +134,37 @@ class SignaturePadView : ViewContainer<SignaturePadAttr, SignaturePadEvent>() {
         inkColor = attr.pen
         inkWidth = attr.penStrokeWidth
         paperColor = attr.paper
+        ink.minDistance = attr.sampleDistance
     }
 
     private fun mountSurface() {
         val ctx = this
-        Canvas({
-            ref { ctx.canvasRef = it }
+        View {
+            ref { ctx.surfaceRef = it }
             attr {
                 absolutePositionAllZero()
+                backgroundColor(ctx.paperColor)
             }
-        }) { context, width, height ->
-            // Touch revision so redraw runs when strokes change.
-            ctx.revision
-            context.beginPath()
-            context.fillStyle(ctx.paperColor)
-            context.moveTo(0f, 0f)
-            context.lineTo(width, 0f)
-            context.lineTo(width, height)
-            context.lineTo(0f, height)
-            context.closePath()
-            context.fill()
-
-            context.lineCapRound()
-            context.lineWidth(ctx.inkWidth)
-            context.strokeStyle(ctx.inkColor)
-            for (stroke in ctx.strokes) {
-                if (stroke.isEmpty()) {
-                    continue
+            Canvas({
+                attr {
+                    absolutePositionAllZero()
                 }
-                context.beginPath()
-                val first = stroke[0]
-                context.moveTo(first.x, first.y)
-                if (stroke.size == 1) {
-                    context.lineTo(first.x + 0.1f, first.y)
-                } else {
-                    for (index in 1 until stroke.size) {
-                        val point = stroke[index]
-                        context.lineTo(point.x, point.y)
-                    }
+            }) { context, _, _ ->
+                ctx.finishedRevision
+                ctx.prepareInk(context)
+                for (stroke in ctx.ink.finishedStrokes) {
+                    drawStroke(context, stroke)
                 }
-                context.stroke()
+            }
+            Canvas({
+                attr {
+                    absolutePositionAllZero()
+                }
+            }) { context, _, _ ->
+                ctx.activeRevision
+                val stroke = ctx.ink.activeStroke ?: return@Canvas
+                ctx.prepareInk(context)
+                drawStroke(context, stroke)
             }
         }
         vif({ ctx.empty && ctx.placeholderText.isNotEmpty() }) {
@@ -153,39 +193,70 @@ class SignaturePadView : ViewContainer<SignaturePadAttr, SignaturePadEvent>() {
                 consumeTouchDown(true)
             }
             event {
-                touchDown(true) { params ->
-                    ctx.beginStroke(params.x, params.y)
-                }
-                touchMove(true) { params ->
-                    ctx.extendStroke(params.x, params.y)
-                }
-                touchUp(true) {
-                    ctx.finishStroke()
-                }
-                touchCancel(true) {
-                    ctx.finishStroke()
-                }
+                touchDown(true) { ctx.onTouchDown(it) }
+                touchMove(true) { ctx.onTouchMove(it) }
+                touchUp(true) { ctx.onTouchUp(it) }
+                touchCancel(true) { ctx.onTouchCancel() }
             }
         }
     }
 
-    private fun beginStroke(x: Float, y: Float) {
-        val stroke = ArrayList<StrokePoint>()
-        stroke.add(StrokePoint(x, y))
-        strokes.add(stroke)
-        activeStroke = stroke
+    private fun prepareInk(context: CanvasContext) {
+        context.lineCapRound()
+        context.lineWidth(inkWidth)
+        context.strokeStyle(inkColor)
+    }
+
+    // 只跟踪第一根落下的手指。iOS 的 pointerId 是 touch.hash，顶层 Int 字段会截断，
+    // 因此统一用 touches 里的 Long 型 id。
+    private fun onTouchDown(params: TouchParams) {
+        if (activePointer != null) {
+            return
+        }
+        val touch = params.touches.firstOrNull()
+        activePointer = touch?.pointerId ?: params.pointerId.toLong()
+        ink.begin(touch?.x ?: params.x, touch?.y ?: params.y)
         empty = false
-        revision++
+        activeRevision++
     }
 
-    private fun extendStroke(x: Float, y: Float) {
-        val stroke = activeStroke ?: return
-        stroke.add(StrokePoint(x, y))
-        revision++
+    private fun onTouchMove(params: TouchParams) {
+        val pointer = activePointer ?: return
+        if (ink.activeStroke == null) {
+            return
+        }
+        if (params.touches.isEmpty()) {
+            if (ink.extend(params.x, params.y)) activeRevision++
+            return
+        }
+        val touch = params.touches.firstOrNull { it.pointerId == pointer }
+        if (touch == null) {
+            commitStroke()
+        } else if (ink.extend(touch.x, touch.y)) {
+            activeRevision++
+        }
     }
 
-    private fun finishStroke() {
-        activeStroke = null
+    private fun onTouchUp(params: TouchParams) {
+        // Android 的 POINTER_UP 与 iOS 的 allTouches 都带着还按着的手指，
+        // 无法区分是哪根手指抬起；只在最后一根手指抬起时收笔。
+        if (params.touches.size <= 1) {
+            commitStroke()
+            activePointer = null
+        }
+    }
+
+    private fun onTouchCancel() {
+        commitStroke()
+        activePointer = null
+    }
+
+    private fun commitStroke() {
+        if (ink.end()) {
+            finishedRevision++
+            activeRevision++
+            event.changeHandler?.invoke(false)
+        }
     }
 
     private fun JSONObject?.exportData(): String? {
@@ -193,8 +264,30 @@ class SignaturePadView : ViewContainer<SignaturePadAttr, SignaturePadEvent>() {
         if (!payload.has("code") || payload.optInt("code") != 0 || !payload.has("data")) {
             return null
         }
-        return payload.optString("data")
+        return payload.optString("data").ifEmpty { null }
     }
+
+    companion object {
+        const val DEFAULT_EXPORT_TIMEOUT_MS = 3000
+    }
+}
+
+private fun drawStroke(context: CanvasContext, stroke: List<SignaturePoint>) {
+    if (stroke.isEmpty()) {
+        return
+    }
+    context.beginPath()
+    val first = stroke[0]
+    context.moveTo(first.x, first.y)
+    if (stroke.size == 1) {
+        context.lineTo(first.x + 0.1f, first.y)
+    } else {
+        for (index in 1 until stroke.size) {
+            val point = stroke[index]
+            context.lineTo(point.x, point.y)
+        }
+    }
+    context.stroke()
 }
 
 class SignaturePadAttr : ContainerAttr() {
@@ -203,6 +296,8 @@ class SignaturePadAttr : ContainerAttr() {
     internal var pen: Color = Color.BLACK
     internal var penStrokeWidth: Float = 3f
     internal var paper: Color = Color.WHITE
+    internal var sampleDistance: Float = SignatureStrokes.DEFAULT_MIN_DISTANCE
+    internal var bitmapExportEverywhere: Boolean = false
     internal var onStyleChanged: (() -> Unit)? = null
 
     fun placeholder(text: String) {
@@ -229,12 +324,28 @@ class SignaturePadAttr : ContainerAttr() {
         paper = color
         onStyleChanged?.invoke()
     }
+
+    /** 采样最小间距（dp/pt），默认 1.5。 */
+    fun minPointDistance(distance: Float) {
+        sampleDistance = distance
+        onStyleChanged?.invoke()
+    }
+
+    /** 宿主渲染层 ≥ 2.17.0 时打开，Android/iOS/H5 也走 `toImage`。默认只在鸿蒙走。 */
+    fun bitmapExportOnAllPlatforms(enabled: Boolean) {
+        bitmapExportEverywhere = enabled
+    }
 }
 
-class SignaturePadEvent : Event()
+class SignaturePadEvent : Event() {
+    internal var changeHandler: ((isEmpty: Boolean) -> Unit)? = null
+
+    /** 一笔写完或清除后触发，参数为当前是否为空。 */
+    fun onChange(handler: (isEmpty: Boolean) -> Unit) {
+        changeHandler = handler
+    }
+}
 
 fun ViewContainer<*, *>.SignaturePad(init: SignaturePadView.() -> Unit) {
     addChild(SignaturePadView(), init)
 }
-
-private class StrokePoint(val x: Float, val y: Float)
