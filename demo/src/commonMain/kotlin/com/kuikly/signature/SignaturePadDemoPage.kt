@@ -49,6 +49,12 @@ class SignaturePadDemoPage : Pager() {
                     placeholder("请在此签名")
                     placeholderFontSize(16f)
                 }
+                event {
+                    onChange { empty ->
+                        ctx.exportHint = if (empty) "已清除" else "尚未导出"
+                        ctx.previewSrc = ""
+                    }
+                }
             }
             View {
                 attr {
@@ -67,8 +73,6 @@ class SignaturePadDemoPage : Pager() {
                     event {
                         click {
                             ctx.padRef?.view?.clear()
-                            ctx.exportHint = "已清除"
-                            ctx.previewSrc = ""
                         }
                     }
                     Text {
@@ -89,15 +93,7 @@ class SignaturePadDemoPage : Pager() {
                     }
                     event {
                         click {
-                            ctx.padRef?.view?.toImage { data ->
-                                if (data == null) {
-                                    ctx.exportHint = "导出失败"
-                                    ctx.previewSrc = ""
-                                } else {
-                                    ctx.exportHint = "已导出"
-                                    ctx.previewSrc = data
-                                }
-                            }
+                            ctx.export()
                         }
                     }
                     Text {
@@ -129,6 +125,25 @@ class SignaturePadDemoPage : Pager() {
                         backgroundColor(Color(0xFFF2F4F7L))
                     }
                 }
+            }
+        }
+    }
+
+    private fun export() {
+        val pad = padRef?.view ?: return
+        if (pad.isEmpty()) {
+            exportHint = "还没有签名"
+            previewSrc = ""
+            return
+        }
+        val svgLength = pad.toSvg().length
+        pad.toImage { data ->
+            if (data == null) {
+                exportHint = "已导出 SVG（$svgLength 字符）；当前平台不支持位图导出"
+                previewSrc = ""
+            } else {
+                exportHint = "已导出 SVG（$svgLength 字符）与位图"
+                previewSrc = data
             }
         }
     }

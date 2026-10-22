@@ -5,8 +5,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.kuikly.signature.compose.ComposeSignaturePad
+import com.kuikly.signature.compose.rememberSignaturePadState
 import com.tencent.kuikly.compose.ComposeContainer
-import com.tencent.kuikly.compose.extension.MakeKuiklyComposeNode
 import com.tencent.kuikly.compose.foundation.background
 import com.tencent.kuikly.compose.foundation.layout.Column
 import com.tencent.kuikly.compose.foundation.layout.Row
@@ -25,8 +26,6 @@ import com.tencent.kuikly.compose.ui.graphics.Color
 import com.tencent.kuikly.compose.ui.unit.dp
 import com.tencent.kuikly.compose.ui.unit.sp
 import com.tencent.kuikly.core.annotations.Page
-import com.tencent.kuikly.core.base.Color as KuiklyColor
-import com.tencent.kuikly.core.views.ImageView
 
 @Page("signature_pad_compose_demo")
 class SignaturePadComposeDemoPage : ComposeContainer() {
@@ -40,9 +39,8 @@ class SignaturePadComposeDemoPage : ComposeContainer() {
 
 @Composable
 private fun SignaturePadComposeDemo() {
-    val controller = remember { SignaturePadController() }
+    val padState = rememberSignaturePadState()
     var hint by remember { mutableStateOf("尚未导出") }
-    var previewSrc by remember { mutableStateOf("") }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -53,22 +51,18 @@ private fun SignaturePadComposeDemo() {
         Spacer(modifier = Modifier.height(6.dp))
         Text(text = "在框内书写，清除后可以重签。", fontSize = 14.sp, color = Color(0xFF667085))
         Spacer(modifier = Modifier.height(16.dp))
-        SignaturePad(
+        ComposeSignaturePad(
+            state = padState,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(240.dp),
             placeholder = "请在此签名",
-            placeholderFontSize = 16f,
-            controller = controller,
+            onChange = { empty -> hint = if (empty) "已清除" else "尚未导出" },
         )
         Spacer(modifier = Modifier.height(16.dp))
         Row(modifier = Modifier.fillMaxWidth()) {
             Button(
-                onClick = {
-                    controller.clear()
-                    hint = "已清除"
-                    previewSrc = ""
-                },
+                onClick = { padState.clear() },
                 modifier = Modifier
                     .weight(1f)
                     .height(44.dp)
@@ -79,14 +73,10 @@ private fun SignaturePadComposeDemo() {
             Spacer(modifier = Modifier.width(8.dp))
             Button(
                 onClick = {
-                    controller.toImage { data ->
-                        if (data == null) {
-                            hint = "导出失败"
-                            previewSrc = ""
-                        } else {
-                            hint = "已导出"
-                            previewSrc = data
-                        }
+                    hint = if (padState.isEmpty) {
+                        "还没有签名"
+                    } else {
+                        "已导出 SVG（${padState.toSvg().length} 字符）"
                     }
                 },
                 modifier = Modifier
@@ -99,30 +89,5 @@ private fun SignaturePadComposeDemo() {
         }
         Spacer(modifier = Modifier.height(12.dp))
         Text(text = hint, fontSize = 14.sp, color = Color(0xFF667085))
-        if (previewSrc.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(12.dp))
-            ExportedPreview(
-                src = previewSrc,
-                modifier = Modifier
-                    .width(280.dp)
-                    .height(160.dp),
-            )
-        }
     }
-}
-
-@Composable
-private fun ExportedPreview(src: String, modifier: Modifier = Modifier) {
-    MakeKuiklyComposeNode(
-        factory = { ImageView() },
-        modifier = modifier,
-        viewUpdate = { view ->
-            view.getViewAttr().apply {
-                src(src)
-                resizeContain()
-                backgroundColor(KuiklyColor(0xFFF2F4F7L))
-                borderRadius(8f)
-            }
-        },
-    )
 }
