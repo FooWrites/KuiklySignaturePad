@@ -1,0 +1,11 @@
+.gradle/
+**/build/
+local.properties
+.idea/
+*.iml
+iosApp/Pods/
+iosApp/*.xcworkspace/
+iosApp/*.xcodeproj/
+ohosApp/.hvigor/
+ohosApp/entry/build/
+node_modules/
