@@ -279,7 +279,7 @@ class SignaturePadComposeState {
 fun rememberSignaturePadState(): SignaturePadComposeState = remember { SignaturePadComposeState() }
 
 /**
- * Compose DSL 手写签名板。需通过 [modifier] 指定尺寸。
+ * Compose DSL 手写签名板。
  *
  * ```
  * val padState = rememberSignaturePadState()

@@ -25,7 +25,7 @@ import kotlin.math.PI
  *
  * 笔迹保存在内存中，已完成的笔画和进行中的笔画分别绘制在两层 [Canvas] 上，
  * 书写过程中只重绘进行中的笔画。
- * 需为组件指定宽高；通过 [ViewRef] 获取 [SignaturePadView] 后调用清除和导出。
+ * 通过 [ViewRef] 获取 [SignaturePadView] 后调用清除和导出。
  */
 class SignaturePadAttr : ComposeAttr() {
     /** 笔迹颜色。修改后只影响之后绘制的笔画。 */

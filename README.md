@@ -35,7 +35,7 @@ dependencies {
 
 ### 使用
 
-组件需要明确的宽高。通过 `ViewRef<SignaturePadView>` 清除和导出：
+通过 `ViewRef<SignaturePadView>` 清除和导出：
 
 ```kotlin
 import com.kuikly.signature.SignaturePad
@@ -104,7 +104,7 @@ dependencies {
 
 ### 使用
 
-组件需要通过 `modifier` 指定尺寸。通过 `SignaturePadComposeState` 清除和导出：
+通过 `SignaturePadComposeState` 清除和导出：
 
 ```kotlin
 import com.kuikly.signature.compose.SignaturePadCompose
@@ -133,7 +133,7 @@ state.export { result ->
 
 | 参数 | 类型 | 默认值 | 说明 |
 |---|---|---|---|
-| `modifier` | `Modifier` | `Modifier` | 需指定尺寸 |
+| `modifier` | `Modifier` | `Modifier` | 布局修饰符 |
 | `state` | `SignaturePadComposeState` | `rememberSignaturePadState()` | 清除、导出和空白状态 |
 | `penColor` | `Color` | `Color.Black` | 笔迹颜色，只影响之后的笔画 |
 | `penWidth` | `Dp` | `3.dp` | 笔迹宽度 |
