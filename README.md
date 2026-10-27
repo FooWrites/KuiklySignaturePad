@@ -183,3 +183,7 @@ state.export { result ->
 ## 开发
 
 工程结构、Demo 运行和本地发布见 [开发文档](docs/development.md)。
+
+## License
+
+[MIT](LICENSE)
