@@ -11,6 +11,7 @@ plugins {
 }
 
 val KEY_PAGE_NAME = "pageName"
+val kuiklyVersion = property("KUIKLY_VERSION") as String
 
 kotlin {
     androidTarget {
@@ -40,8 +41,8 @@ kotlin {
     iosSimulatorArm64()
 
     cocoapods {
-        summary = "Some description for the Shared Module"
-        homepage = "Link to the Shared Module homepage"
+        summary = "KuiklySignaturePad demo pages"
+        homepage = "https://github.com/FooWrites/KuiklySignaturePad"
         version = "1.0"
         ios.deploymentTarget = "14.1"
         podfile = project.file("../iosApp/Podfile")
@@ -57,16 +58,16 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("com.tencent.kuikly-open:core:2.29.2-2.1.21")
-                implementation("com.tencent.kuikly-open:core-annotations:2.29.2-2.1.21")
-                implementation("com.tencent.kuikly-open:compose:2.29.2-2.1.21")
+                implementation("com.tencent.kuikly-open:core:$kuiklyVersion")
+                implementation("com.tencent.kuikly-open:core-annotations:$kuiklyVersion")
+                implementation("com.tencent.kuikly-open:compose:$kuiklyVersion")
                 implementation(project(":signaturepad"))
                 implementation(project(":signaturepad-compose"))
             }
         }
         val androidMain by getting {
             dependencies {
-                api("com.tencent.kuikly-open:core-render-android:2.29.2-2.1.21")
+                api("com.tencent.kuikly-open:core-render-android:$kuiklyVersion")
             }
         }
 
@@ -102,7 +103,7 @@ ksp {
 }
 
 dependencies {
-    compileOnly("com.tencent.kuikly-open:core-ksp:2.29.2-2.1.21") {
+    compileOnly("com.tencent.kuikly-open:core-ksp:$kuiklyVersion") {
         add("kspAndroid", this)
         add("kspIosArm64", this)
         add("kspIosX64", this)

@@ -5,18 +5,12 @@ plugins {
     `maven-publish`
 }
 
-val kuiklyOhosVersion = "2.23.2-2.0.21-ohos"
-val baseVersion = System.getenv("VERSION")
-    ?.removePrefix("v")
-    ?.takeIf { it.isNotBlank() }
-    ?: "0.2.0"
+val kuiklyOhosVersion = property("KUIKLY_OHOS_VERSION") as String
 
 group = "com.github.FooWrites.KuiklySignaturePad"
-version = if (baseVersion.endsWith("-2.1.21-ohos")) {
-    baseVersion
-} else {
-    "$baseVersion-2.1.21-ohos"
-}
+// JitPack 以 tag 作为 VERSION，tag 需与 {MAVEN_VERSION}-{OHOS_KOTLIN_VERSION} 一致
+version = System.getenv("VERSION")?.takeIf { it.isNotBlank() }
+    ?: "${property("MAVEN_VERSION")}-${property("OHOS_KOTLIN_VERSION")}"
 
 kotlin {
     ohosArm64()
@@ -25,6 +19,9 @@ kotlin {
         commonMain.dependencies {
             implementation("com.tencent.kuikly-open:core:$kuiklyOhosVersion")
             implementation("com.tencent.kuikly-open:compose:$kuiklyOhosVersion")
+        }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
         }
     }
 }

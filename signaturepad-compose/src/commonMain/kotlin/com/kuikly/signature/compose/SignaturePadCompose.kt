@@ -1,6 +1,7 @@
 package com.kuikly.signature.compose
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -64,7 +65,8 @@ class SignatureExportResult(
 /**
  * Compose DSL 手写签名板的状态。
  *
- * 笔迹变化通过 Compose 状态触发重绘，触摸由 `pointerInput` 处理；
+ * 笔迹变化通过 Compose 状态触发重绘，已完成的笔画和进行中的笔画分别绘制在两层 [Canvas] 上，
+ * 书写过程中只重绘进行中的笔画；触摸由 `pointerInput` 处理；
  * 导出时通过 [Modifier.nativeRef] 获取底层 View，再调用 [DeclarativeBaseView.toImage]。
  *
  * 指针坐标与 [Canvas] 一致，单位为像素。`penWidth` 等尺寸参数为 [Dp]，开始一笔时通过 `toPx()` 换算。
@@ -77,11 +79,12 @@ class SignaturePadComposeState {
     internal var onSigned: (Boolean) -> Unit = {}
 
     /**
-     * 重绘计数，只在 [drawBoard] 中读取。
+     * 重绘计数，只在绘制阶段读取：[inkTick] 对应已完成笔画层，[activeTick] 对应进行中笔画层。
      * 绘制阶段读取的状态变化只触发 Canvas 重绘，不会重组 [SignaturePadCompose]；
      * 绘制一笔的过程中如果发生重组，`pointerInput` 会重启并取消当前手势。
      */
-    private var drawTick by mutableStateOf(0)
+    private var inkTick by mutableStateOf(0)
+    private var activeTick by mutableStateOf(0)
 
     /**
      * 是否组合提示文字。
@@ -93,13 +96,13 @@ class SignaturePadComposeState {
 
     /** 画板没有笔迹时为 true。单击也会留下笔迹。该属性不是 Compose 状态，读取它不会触发重组。 */
     val isEmpty: Boolean
-        get() = strokes.isEmpty()
+        get() = strokes.isEmpty() && active == null
 
     /**
      * 清除全部笔迹，并回调 `onSigned(false)`。画板本来为空时不回调。
      */
     fun clear() {
-        val hadInk = strokes.isNotEmpty() || active != null
+        val hadInk = !isEmpty
         strokes.clear()
         active = null
         if (!hadInk) {
@@ -107,14 +110,15 @@ class SignaturePadComposeState {
         }
         showPlaceholder = true
         setPlaceholderVisible(true)
-        drawTick++
+        inkTick++
+        activeTick++
         onSigned(false)
     }
 
     /**
      * 将画板（底色、边框和笔迹）导出为图片。
      *
-     * 基于 [DeclarativeBaseView.toImage]，Kuikly 2.17.0 起支持 Android、iOS 和 HarmonyOS，不支持 H5。
+     * 基于 [DeclarativeBaseView.toImage]，支持 Android、iOS、HarmonyOS 和 H5，H5 不支持 [DeclarativeBaseView.ImageType.FILE]。
      * 画板为空时不执行导出，直接回调 code = [SignatureExportResult.EMPTY_CODE]。
      */
     fun export(
@@ -135,16 +139,19 @@ class SignaturePadComposeState {
         placeholderRef = ref
     }
 
+    internal fun detachPlaceholder() {
+        placeholderRef = null
+    }
+
     internal fun begin(position: Offset, color: Color, widthPx: Float) {
         if (active != null) {
             return
         }
         val stroke = Ink(color, widthPx)
         stroke.points.add(position)
-        strokes.add(stroke)
         active = stroke
         setPlaceholderVisible(false)
-        drawTick++
+        activeTick++
     }
 
     internal fun extend(position: Offset, minDistancePx: Float) {
@@ -154,7 +161,7 @@ class SignaturePadComposeState {
             return
         }
         stroke.points.add(position)
-        drawTick++
+        activeTick++
     }
 
     internal fun end(position: Offset?, minDistancePx: Float) {
@@ -165,24 +172,28 @@ class SignaturePadComposeState {
                 stroke.points.add(position)
             }
         }
+        strokes.add(stroke)
         active = null
-        drawTick++
-        val empty = strokes.isEmpty()
-        showPlaceholder = empty
-        if (empty) {
-            setPlaceholderVisible(true)
-        }
-        onSigned(!empty)
+        inkTick++
+        activeTick++
+        showPlaceholder = false
+        onSigned(true)
     }
 
-    internal fun drawBoard(scope: DrawScope) {
-        // 在绘制阶段读取 drawTick，笔迹变化时才会触发重绘。
-        if (drawTick < 0) {
+    internal fun drawInk(scope: DrawScope) {
+        if (inkTick < 0) {
             return
         }
         for (stroke in strokes) {
             scope.drawStroke(stroke)
         }
+    }
+
+    internal fun drawActiveStroke(scope: DrawScope) {
+        if (activeTick < 0) {
+            return
+        }
+        active?.let { scope.drawStroke(it) }
     }
 
     private fun setPlaceholderVisible(visible: Boolean) {
@@ -338,11 +349,7 @@ fun SignaturePadCompose(
                             val event = awaitPointerEvent()
                             for (change in event.changes) {
                                 when {
-                                    change.changedToDownIgnoreConsumed() &&
-                                        (pointerId == null || change.id == pointerId) -> {
-                                        if (pointerId != null) {
-                                            state.end(null, minDistancePx)
-                                        }
+                                    pointerId == null && change.changedToDownIgnoreConsumed() -> {
                                         pointerId = change.id
                                         change.consume()
                                         val widthPx = penWidthState.value
@@ -385,9 +392,21 @@ fun SignaturePadCompose(
                     getViewAttr().touchEnable(false)
                 }
         ) {
-            state.drawBoard(this)
+            state.drawInk(this)
+        }
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .nativeRef { _ ->
+                    getViewAttr().touchEnable(false)
+                }
+        ) {
+            state.drawActiveStroke(this)
         }
         if (state.showPlaceholder && placeholder.isNotEmpty()) {
+            DisposableEffect(state) {
+                onDispose { state.detachPlaceholder() }
+            }
             Text(
                 text = placeholder,
                 color = placeholderColor,

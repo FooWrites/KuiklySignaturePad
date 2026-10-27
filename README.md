@@ -17,8 +17,11 @@ repositories {
 
 | 模块 | Android / iOS / H5 | HarmonyOS |
 |---|---|---|
-| Kuikly DSL | `com.github.FooWrites.KuiklySignaturePad:signaturepad:0.2.0` | `com.github.FooWrites.KuiklySignaturePad:signaturepad:0.2.0-2.1.21-ohos` |
-| Compose DSL | `com.github.FooWrites.KuiklySignaturePad:signaturepad-compose:0.2.0` | `com.github.FooWrites.KuiklySignaturePad:signaturepad-compose:0.2.0-2.1.21-ohos` |
+| Kuikly DSL | `com.github.FooWrites.KuiklySignaturePad:signaturepad:0.2.1-2.1.21` | `com.github.FooWrites.KuiklySignaturePad:signaturepad:0.2.1-2.0.21-KBA-010` |
+| Compose DSL | `com.github.FooWrites.KuiklySignaturePad:signaturepad-compose:0.2.1-2.1.21` | `com.github.FooWrites.KuiklySignaturePad:signaturepad-compose:0.2.1-2.0.21-KBA-010` |
+
+版本号格式为 `{组件版本}-{Kotlin 版本}`。Android / iOS / H5 产物基于 Kotlin `2.1.21`、Kuikly `2.29.2-2.1.21` 构建；
+HarmonyOS 产物基于 Kotlin `2.0.21-KBA-010`、Kuikly `2.23.2-2.0.21-ohos` 构建。
 
 接入工程需自行依赖 `com.tencent.kuikly-open:core`，使用 Compose DSL 时还需依赖 `com.tencent.kuikly-open:compose`。
 
@@ -26,7 +29,7 @@ repositories {
 
 ```kotlin
 dependencies {
-    implementation("com.github.FooWrites.KuiklySignaturePad:signaturepad:0.2.0")
+    implementation("com.github.FooWrites.KuiklySignaturePad:signaturepad:0.2.1-2.1.21")
 }
 ```
 
@@ -95,7 +98,7 @@ padRef?.view?.export { result ->
 
 ```kotlin
 dependencies {
-    implementation("com.github.FooWrites.KuiklySignaturePad:signaturepad-compose:0.2.0")
+    implementation("com.github.FooWrites.KuiklySignaturePad:signaturepad-compose:0.2.1-2.1.21")
 }
 ```
 
@@ -160,11 +163,11 @@ state.export { result ->
 ## 导出
 
 两个模块的 `export` 用法相同，导出图片包含底色、边框和笔迹。
-导出基于 Kuikly 的 `toImage`，需要 Kuikly 2.17.0 及以上，支持 Android、iOS 和 HarmonyOS，不支持 H5。
+导出基于 Kuikly 的 `toImage`，支持 Android、iOS、HarmonyOS 和 H5；H5 不支持 `ImageType.FILE`。
 
 | 参数 | 默认值 | 说明 |
 |---|---|---|
-| `type` | `ImageType.DATA_URI` | `DATA_URI` 返回 base64 图片，`CACHE_KEY` 返回可用于 `Image` 的缓存 key，`FILE` 返回文件路径 |
+| `type` | `ImageType.DATA_URI` | `DATA_URI` 返回 base64 图片，`CACHE_KEY` 返回可用于 `Image` 的缓存 key，`FILE` 返回文件路径（H5 不支持） |
 | `sampleSize` | `1` | 采样率，取值大于或等于 1；值越大，输出图片越小 |
 | `callback` | — | 回调 `SignatureExportResult` |
 

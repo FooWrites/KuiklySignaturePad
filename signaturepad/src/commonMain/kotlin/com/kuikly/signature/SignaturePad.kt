@@ -23,36 +23,37 @@ import kotlin.math.PI
 /**
  * 手写签名板的属性。
  *
- * 笔迹保存在内存中，每次变化后通过 [Canvas] 重绘整个画布。
+ * 笔迹保存在内存中，已完成的笔画和进行中的笔画分别绘制在两层 [Canvas] 上，
+ * 书写过程中只重绘进行中的笔画。
  * 需为组件指定宽高；通过 [ViewRef] 获取 [SignaturePadView] 后调用清除和导出。
  */
 class SignaturePadAttr : ComposeAttr() {
     /** 笔迹颜色。修改后只影响之后绘制的笔画。 */
-    var penColor: Color = Color.BLACK
+    var penColor: Color by observable(Color.BLACK)
 
-    /** 笔迹宽度，单位与 Kuikly 布局一致。 */
-    var penWidth: Float = 3f
+    /** 笔迹宽度，单位与 Kuikly 布局一致。修改后只影响之后绘制的笔画。 */
+    var penWidth: Float by observable(3f)
 
     /** 画板底色，包含在导出图片中。 */
-    var boardColor: Color = Color.WHITE
+    var boardColor: Color by observable(Color.WHITE)
 
     /** 圆角半径。 */
-    var cornerRadius: Float = 12f
+    var cornerRadius: Float by observable(12f)
 
     /** 边框宽度，0 表示无边框。 */
-    var borderWidth: Float = 1f
+    var borderWidth: Float by observable(1f)
 
     /** 边框颜色。 */
-    var borderColor: Color = Color(0xFFD9D1C7)
+    var borderColor: Color by observable(Color(0xFFD9D1C7))
 
     /** 画板为空时显示的提示文字，空字符串表示不显示。 */
-    var placeholder: String = "请在此处签名"
+    var placeholder: String by observable("请在此处签名")
 
     /** 提示文字颜色。 */
-    var placeholderColor: Color = Color(0xFFB7B1A8)
+    var placeholderColor: Color by observable(Color(0xFFB7B1A8))
 
     /** 提示文字字号。 */
-    var placeholderFontSize: Float = 15f
+    var placeholderFontSize: Float by observable(15f)
 }
 
 /**
@@ -93,15 +94,22 @@ class SignatureExportResult(
 }
 
 class SignaturePadView : ComposeView<SignaturePadAttr, SignaturePadEvent>() {
-    private var revision by observable(0)
+    // Canvas 只会响应绘制回调中读取的 observable。笔迹数据不是 observable，
+    // 因此用计数触发重绘：inkRevision 对应已完成笔画层，activeRevision 对应进行中笔画层。
+    private var inkRevision by observable(0)
+    private var activeRevision by observable(0)
     private var surfaceRef: ViewRef<DivView>? = null
-    private val strokes = mutableListOf<SignatureStroke>()
-    private var activeStroke: SignatureStroke? = null
-    private var activePointerId: Int? = null
+    private val ink = SignatureInk(MIN_POINT_DISTANCE)
+
+    // H5 和小程序的渲染层不支持 batchDraw 指令，开启后不会绘制任何内容。
+    private val batchDrawSupported by lazy(LazyThreadSafetyMode.NONE) {
+        val pageData = getPager().pageData
+        pageData.isAndroid || pageData.isIOS || pageData.isOhOs
+    }
 
     /** 画板没有笔迹时为 true。单击也会留下笔迹。 */
     val isEmpty: Boolean
-        get() = strokes.isEmpty()
+        get() = ink.isEmpty
 
     override fun createAttr(): SignaturePadAttr = SignaturePadAttr()
 
@@ -111,21 +119,18 @@ class SignaturePadView : ComposeView<SignaturePadAttr, SignaturePadEvent>() {
      * 清除全部笔迹，并通过 [SignaturePadEvent.onSigned] 回调 `false`。
      */
     fun clear() {
-        val hadInk = strokes.isNotEmpty() || activeStroke != null
-        strokes.clear()
-        activeStroke = null
-        activePointerId = null
-        if (!hadInk) {
+        if (!ink.clear()) {
             return
         }
-        revision++
+        inkRevision++
+        activeRevision++
         notifySigned()
     }
 
     /**
      * 将画板（底色、边框和笔迹）导出为图片。
      *
-     * 基于 [DeclarativeBaseView.toImage]，Kuikly 2.17.0 起支持 Android、iOS 和 HarmonyOS，不支持 H5。
+     * 基于 [DeclarativeBaseView.toImage]，支持 Android、iOS、HarmonyOS 和 H5，H5 不支持 [DeclarativeBaseView.ImageType.FILE]。
      * 画板为空时不执行导出，直接回调 code = [SignatureExportResult.EMPTY_CODE]。
      */
     fun export(
@@ -183,58 +188,45 @@ class SignaturePadView : ComposeView<SignaturePadAttr, SignaturePadEvent>() {
                         touchEnable(false)
                     }
                 }) { context, width, height ->
-                    ctx.drawSignature(context, width, height)
+                    ctx.drawInk(context, width, height)
+                }
+                Canvas({
+                    attr {
+                        absolutePosition(top = 0f, left = 0f, bottom = 0f, right = 0f)
+                        touchEnable(false)
+                    }
+                }) { context, _, _ ->
+                    ctx.drawActiveStroke(context)
                 }
             }
         }
     }
 
     private fun beginStroke(params: TouchParams) {
-        if (activePointerId != null) {
+        val wasEmpty = ink.isEmpty
+        val width = attr.penWidth.coerceAtLeast(MIN_PEN_WIDTH)
+        if (!ink.begin(params.pointerId, params.x, params.y, attr.penColor, width)) {
             return
         }
-        val stroke = SignatureStroke(
-            color = attr.penColor,
-            width = attr.penWidth.coerceAtLeast(MIN_PEN_WIDTH)
-        )
-        stroke.points.add(SignaturePoint(params.x, params.y))
-        strokes.add(stroke)
-        activeStroke = stroke
-        activePointerId = params.pointerId
-        revision++
+        if (wasEmpty) {
+            // 隐藏提示文字
+            inkRevision++
+        }
+        activeRevision++
     }
 
     private fun extendStroke(params: TouchParams) {
-        if (params.pointerId != activePointerId) {
-            return
+        if (ink.extend(params.pointerId, params.x, params.y)) {
+            activeRevision++
         }
-        val stroke = activeStroke ?: return
-        val last = stroke.points.last()
-        if (!movedEnough(last, params.x, params.y)) {
-            return
-        }
-        stroke.points.add(SignaturePoint(params.x, params.y))
-        revision++
     }
 
     private fun endStroke(params: TouchParams) {
-        if (activePointerId != null && params.pointerId != activePointerId) {
+        if (!ink.end(params.pointerId, params.x, params.y)) {
             return
         }
-        val stroke = activeStroke
-        if (stroke != null) {
-            val last = stroke.points.lastOrNull()
-            if (last != null && movedEnough(last, params.x, params.y)) {
-                stroke.points.add(SignaturePoint(params.x, params.y))
-            }
-        }
-        val finished = stroke != null
-        activeStroke = null
-        activePointerId = null
-        if (!finished) {
-            return
-        }
-        revision++
+        inkRevision++
+        activeRevision++
         notifySigned()
     }
 
@@ -242,20 +234,26 @@ class SignaturePadView : ComposeView<SignaturePadAttr, SignaturePadEvent>() {
         event.signedHandler?.invoke(!isEmpty)
     }
 
-    private fun drawSignature(context: CanvasContext, width: Float, height: Float) {
-        context.batchDraw = true
-        // Canvas 只会响应绘制回调中读取的 observable。笔迹列表不是 observable，
-        // 因此需要读取 revision，笔迹变化时才会触发重绘。
-        if (revision < 0) {
+    private fun drawInk(context: CanvasContext, width: Float, height: Float) {
+        context.batchDraw = batchDrawSupported
+        if (inkRevision < 0) {
             return
         }
-        if (strokes.isEmpty()) {
+        if (ink.isEmpty) {
             drawPlaceholder(context, width, height)
             return
         }
-        for (stroke in strokes) {
+        for (stroke in ink.strokes) {
             drawStroke(context, stroke)
         }
+    }
+
+    private fun drawActiveStroke(context: CanvasContext) {
+        context.batchDraw = batchDrawSupported
+        if (activeRevision < 0) {
+            return
+        }
+        ink.activeStroke?.let { drawStroke(context, it) }
     }
 
     private fun drawPlaceholder(context: CanvasContext, width: Float, height: Float) {
@@ -336,15 +334,6 @@ class SignaturePadView : ComposeView<SignaturePadAttr, SignaturePadEvent>() {
         val dx = x - from.x
         val dy = y - from.y
         return dx * dx + dy * dy >= MIN_POINT_DISTANCE * MIN_POINT_DISTANCE
-    }
-
-    private class SignaturePoint(val x: Float, val y: Float)
-
-    private class SignatureStroke(
-        val color: Color,
-        val width: Float
-    ) {
-        val points = mutableListOf<SignaturePoint>()
     }
 
     companion object {

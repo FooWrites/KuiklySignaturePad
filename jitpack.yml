@@ -1,4 +1,4 @@
 jdk:
   - openjdk17
 install:
-  - 'case "$VERSION" in *-ohos) ./gradlew -c settings.ohos.gradle.kts publishOhosToMavenLocal --no-daemon ;; *) ./gradlew :signaturepad:publishToMavenLocal :signaturepad-compose:publishToMavenLocal --no-daemon ;; esac'
+  - 'case "$VERSION" in *-KBA-*) ./gradlew -c settings.ohos.gradle.kts publishOhosToMavenLocal --no-daemon ;; *) ./gradlew :signaturepad:publishToMavenLocal :signaturepad-compose:publishToMavenLocal --no-daemon ;; esac'

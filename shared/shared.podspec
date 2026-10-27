@@ -1,11 +1,11 @@
 Pod::Spec.new do |spec|
     spec.name                     = 'shared'
     spec.version                  = '1.0'
-    spec.homepage                 = 'Link to the Shared Module homepage'
+    spec.homepage                 = 'https://github.com/FooWrites/KuiklySignaturePad'
     spec.source                   = { :http=> ''}
     spec.authors                  = ''
     spec.license                  = 'MIT'
-    spec.summary                  = 'Some description for the Shared Module'
+    spec.summary                  = 'KuiklySignaturePad demo pages'
     spec.vendored_frameworks      = 'build/cocoapods/framework/shared.framework'
     spec.libraries                = 'c++'
     spec.ios.deployment_target = '14.1'

@@ -5,6 +5,8 @@ plugins {
     kotlin("plugin.compose")
 }
 
+val kuiklyOhosVersion = property("KUIKLY_OHOS_VERSION") as String
+
 kotlin {
     ohosArm64 {
         binaries.sharedLib("shared") {
@@ -22,9 +24,9 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("com.tencent.kuikly-open:core:2.23.2-2.0.21-ohos")
-                implementation("com.tencent.kuikly-open:core-annotations:2.23.2-2.0.21-ohos")
-                implementation("com.tencent.kuikly-open:compose:2.23.2-2.0.21-ohos")
+                implementation("com.tencent.kuikly-open:core:$kuiklyOhosVersion")
+                implementation("com.tencent.kuikly-open:core-annotations:$kuiklyOhosVersion")
+                implementation("com.tencent.kuikly-open:compose:$kuiklyOhosVersion")
                 implementation(project(":signaturepad"))
                 implementation(project(":signaturepad-compose"))
             }
@@ -38,5 +40,5 @@ kotlin {
 }
 
 dependencies {
-    add("kspOhosArm64", "com.tencent.kuikly-open:core-ksp:2.23.2-2.0.21-ohos")
+    add("kspOhosArm64", "com.tencent.kuikly-open:core-ksp:$kuiklyOhosVersion")
 }

@@ -1,4 +1,5 @@
 pluginManagement {
+    val OHOS_KOTLIN_VERSION: String by settings
     repositories {
         maven { url = uri("https://mirrors.tencent.com/nexus/repository/maven-tencent/") }
         maven { url = uri("https://mirrors.tencent.com/nexus/repository/maven-public/") }
@@ -6,6 +7,12 @@ pluginManagement {
         gradlePluginPortal()
         mavenCentral()
         mavenLocal()
+    }
+    plugins {
+        kotlin("multiplatform") version OHOS_KOTLIN_VERSION
+        kotlin("plugin.compose") version OHOS_KOTLIN_VERSION
+        id("com.google.devtools.ksp") version "2.0.21-1.0.27"
+        id("org.jetbrains.compose") version "1.7.3"
     }
 }
 

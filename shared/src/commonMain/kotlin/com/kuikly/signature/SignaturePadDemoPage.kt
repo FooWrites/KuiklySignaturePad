@@ -53,12 +53,8 @@ internal class SignaturePadDemoPage : Pager() {
                 }
                 event {
                     onSigned { hasInk ->
-                        if (!hasInk) {
-                            ctx.exportHint = "已清除"
-                            ctx.previewSrc = ""
-                        } else {
-                            ctx.exportHint = "已签名"
-                        }
+                        ctx.exportHint = if (hasInk) "已签名" else "已清除"
+                        ctx.previewSrc = ""
                     }
                 }
             }

@@ -34,10 +34,14 @@ private fun parseQuery(search: String): Map<String, String> {
         .mapNotNull { item ->
             val parts = item.split("=", limit = 2)
             if (parts.size == 2 && parts[0].isNotEmpty()) {
-                parts[0] to parts[1]
+                decodeQueryComponent(parts[0]) to decodeQueryComponent(parts[1])
             } else {
                 null
             }
         }
         .toMap()
+}
+
+private fun decodeQueryComponent(value: String): String {
+    return js("decodeURIComponent")(value.replace("+", " ")) as String
 }

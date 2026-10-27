@@ -6,7 +6,7 @@ plugins {
     `maven-publish`
 }
 
-val kuiklyVersion = "2.29.2-2.1.21"
+val kuiklyVersion = property("KUIKLY_VERSION") as String
 
 kotlin {
     androidTarget {
@@ -48,10 +48,9 @@ android {
 }
 
 group = "com.github.FooWrites.KuiklySignaturePad"
-version = System.getenv("VERSION")
-    ?.removePrefix("v")
-    ?.takeIf { it.isNotBlank() }
-    ?: "0.2.0"
+// JitPack 以 tag 作为 VERSION，tag 需与 {MAVEN_VERSION}-{KOTLIN_VERSION} 一致
+version = System.getenv("VERSION")?.takeIf { it.isNotBlank() }
+    ?: "${property("MAVEN_VERSION")}-${property("KOTLIN_VERSION")}"
 
 publishing {
     publications.withType<MavenPublication>().configureEach {

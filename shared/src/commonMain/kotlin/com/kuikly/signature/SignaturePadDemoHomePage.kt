@@ -18,85 +18,85 @@ internal class SignaturePadDemoHomePage : Pager() {
         val ctx = this
         return {
             attr {
-            flexDirectionColumn()
-            backgroundColor(Color.WHITE)
-            padding(24f)
-        }
-        Text {
-            attr {
-                text("Kuikly SignaturePad")
-                fontSize(24f)
-                color(Color(0xFF1F2328L))
-            }
-        }
-        Text {
-            attr {
-                marginTop(8f)
-                text("选择 DSL 查看签名板示例")
-                fontSize(14f)
-                color(Color(0xFF667085L))
-            }
-        }
-        View {
-            attr {
-                marginTop(20f)
-                height(72f)
-                padding(16f)
-                borderRadius(12f)
-                backgroundColor(Color(0xFFF2F4F7L))
                 flexDirectionColumn()
-            }
-            event {
-                click {
-                    ctx.routerModule.openPage("signature_pad_demo")
-                }
+                backgroundColor(Color.WHITE)
+                padding(24f)
             }
             Text {
                 attr {
-                    text("Kuikly DSL")
-                    fontSize(18f)
+                    text("Kuikly SignaturePad")
+                    fontSize(24f)
                     color(Color(0xFF1F2328L))
                 }
             }
             Text {
                 attr {
-                    marginTop(6f)
-                    text("SignaturePadView")
-                    fontSize(13f)
+                    marginTop(8f)
+                    text("选择 DSL 查看签名板示例")
+                    fontSize(14f)
                     color(Color(0xFF667085L))
                 }
             }
-        }
-        View {
-            attr {
-                marginTop(12f)
-                height(72f)
-                padding(16f)
-                borderRadius(12f)
-                backgroundColor(Color(0xFFF2F4F7L))
-                flexDirectionColumn()
-            }
-            event {
-                click {
-                    ctx.routerModule.openPage("signature_pad_compose_demo")
-                }
-            }
-            Text {
+            View {
                 attr {
-                    text("Compose DSL")
-                    fontSize(18f)
-                    color(Color(0xFF1F2328L))
+                    marginTop(20f)
+                    height(72f)
+                    padding(16f)
+                    borderRadius(12f)
+                    backgroundColor(Color(0xFFF2F4F7L))
+                    flexDirectionColumn()
+                }
+                event {
+                    click {
+                        ctx.routerModule.openPage("signature_pad_demo")
+                    }
+                }
+                Text {
+                    attr {
+                        text("Kuikly DSL")
+                        fontSize(18f)
+                        color(Color(0xFF1F2328L))
+                    }
+                }
+                Text {
+                    attr {
+                        marginTop(6f)
+                        text("SignaturePadView")
+                        fontSize(13f)
+                        color(Color(0xFF667085L))
+                    }
                 }
             }
-            Text {
+            View {
                 attr {
-                    marginTop(6f)
-                    text("SignaturePadCompose")
-                    fontSize(13f)
-                    color(Color(0xFF667085L))
+                    marginTop(12f)
+                    height(72f)
+                    padding(16f)
+                    borderRadius(12f)
+                    backgroundColor(Color(0xFFF2F4F7L))
+                    flexDirectionColumn()
+                }
+                event {
+                    click {
+                        ctx.routerModule.openPage("signature_pad_compose_demo")
+                    }
+                }
+                Text {
+                    attr {
+                        text("Compose DSL")
+                        fontSize(18f)
+                        color(Color(0xFF1F2328L))
+                    }
+                }
+                Text {
+                    attr {
+                        marginTop(6f)
+                        text("SignaturePadCompose")
+                        fontSize(13f)
+                        color(Color(0xFF667085L))
+                    }
                 }
             }
-        }
         }
     }
 }

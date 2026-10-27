@@ -72,19 +72,13 @@ private fun SignaturePadComposeDemo() {
             placeholderFontSize = 18.sp,
             onSigned = { hasInk ->
                 hint = if (hasInk) "已签名" else "已清除"
-                if (!hasInk) {
-                    previewSrc = ""
-                }
+                previewSrc = ""
             },
         )
         Spacer(modifier = Modifier.height(16.dp))
         Row(modifier = Modifier.fillMaxWidth()) {
             Button(
-                onClick = {
-                    state.clear()
-                    hint = "已清除"
-                    previewSrc = ""
-                },
+                onClick = { state.clear() },
                 modifier = Modifier
                     .weight(1f)
                     .height(44.dp),

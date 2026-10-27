@@ -2,6 +2,8 @@ plugins {
     kotlin("multiplatform")
 }
 
+val kuiklyVersion = property("KUIKLY_VERSION") as String
+
 kotlin {
     js(IR) {
         browser {
@@ -18,8 +20,8 @@ kotlin {
         val jsMain by getting {
             dependencies {
                 implementation(project(":shared"))
-                implementation("com.tencent.kuikly-open.core-render-web:base:2.29.2-2.1.21")
-                implementation("com.tencent.kuikly-open.core-render-web:h5:2.29.2-2.1.21")
+                implementation("com.tencent.kuikly-open.core-render-web:base:$kuiklyVersion")
+                implementation("com.tencent.kuikly-open.core-render-web:h5:$kuiklyVersion")
             }
         }
     }
