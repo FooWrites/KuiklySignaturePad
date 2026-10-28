@@ -91,7 +91,7 @@ internal class SignaturePadDemoHomePage : Pager() {
                 Text {
                     attr {
                         marginTop(6f)
-                        text("SignaturePadCompose")
+                        text("SignaturePad")
                         fontSize(13f)
                         color(Color(0xFF667085L))
                     }

@@ -17,8 +17,8 @@ repositories {
 
 | 模块 | Android / iOS / H5 | HarmonyOS |
 |---|---|---|
-| Kuikly DSL | `com.github.FooWrites.KuiklySignaturePad:signaturepad:0.2.1-2.1.21` | `com.github.FooWrites.KuiklySignaturePad:signaturepad:0.2.1-2.0.21-KBA-010` |
-| Compose DSL | `com.github.FooWrites.KuiklySignaturePad:signaturepad-compose:0.2.1-2.1.21` | `com.github.FooWrites.KuiklySignaturePad:signaturepad-compose:0.2.1-2.0.21-KBA-010` |
+| Kuikly DSL | `com.github.FooWrites.KuiklySignaturePad:signaturepad:0.2.2-2.1.21` | `com.github.FooWrites.KuiklySignaturePad:signaturepad:0.2.2-2.0.21-KBA-010` |
+| Compose DSL | `com.github.FooWrites.KuiklySignaturePad:signaturepad-compose:0.2.2-2.1.21` | `com.github.FooWrites.KuiklySignaturePad:signaturepad-compose:0.2.2-2.0.21-KBA-010` |
 
 版本号格式为 `{组件版本}-{Kotlin 版本}`。Android / iOS / H5 产物基于 Kotlin `2.1.21`、Kuikly `2.29.2-2.1.21` 构建；
 HarmonyOS 产物基于 Kotlin `2.0.21-KBA-010`、Kuikly `2.23.2-2.0.21-ohos` 构建。
@@ -29,7 +29,7 @@ HarmonyOS 产物基于 Kotlin `2.0.21-KBA-010`、Kuikly `2.23.2-2.0.21-ohos` 构
 
 ```kotlin
 dependencies {
-    implementation("com.github.FooWrites.KuiklySignaturePad:signaturepad:0.2.1-2.1.21")
+    implementation("com.github.FooWrites.KuiklySignaturePad:signaturepad:0.2.2-2.1.21")
 }
 ```
 
@@ -98,7 +98,7 @@ padRef?.view?.export { result ->
 
 ```kotlin
 dependencies {
-    implementation("com.github.FooWrites.KuiklySignaturePad:signaturepad-compose:0.2.1-2.1.21")
+    implementation("com.github.FooWrites.KuiklySignaturePad:signaturepad-compose:0.2.2-2.1.21")
 }
 ```
 
@@ -107,12 +107,12 @@ dependencies {
 通过 `SignaturePadComposeState` 清除和导出：
 
 ```kotlin
-import com.kuikly.signature.compose.SignaturePadCompose
+import com.kuikly.signature.compose.SignaturePad
 import com.kuikly.signature.compose.rememberSignaturePadState
 
 val state = rememberSignaturePadState()
 
-SignaturePadCompose(
+SignaturePad(
     state = state,
     modifier = Modifier.fillMaxWidth().height(240.dp),
     penColor = Color(0xFF1A2744),

@@ -71,8 +71,8 @@ hvigorw assembleApp --mode project -p product=default -p buildMode=debug --no-da
 
 | 平台 | 版本号示例 |
 |---|---|
-| Android / iOS / H5 | `0.2.1-2.1.21` |
-| HarmonyOS | `0.2.1-2.0.21-KBA-010` |
+| Android / iOS / H5 | `0.2.2-2.1.21` |
+| HarmonyOS | `0.2.2-2.0.21-KBA-010` |
 
 通过 JitPack 发布时，JitPack 以 tag 作为 `VERSION`，因此每个组件版本需要打两个 tag，
 分别对应上表的两个版本号。tag 包含 `-KBA-` 时 `jitpack.yml` 走鸿蒙构建，否则走 Android / iOS / H5 构建。

@@ -80,7 +80,7 @@ class SignaturePadComposeState {
 
     /**
      * 重绘计数，只在绘制阶段读取：[inkTick] 对应已完成笔画层，[activeTick] 对应进行中笔画层。
-     * 绘制阶段读取的状态变化只触发 Canvas 重绘，不会重组 [SignaturePadCompose]；
+     * 绘制阶段读取的状态变化只触发 Canvas 重绘，不会重组 [SignaturePad]；
      * 绘制一笔的过程中如果发生重组，`pointerInput` 会重启并取消当前手势。
      */
     private var inkTick by mutableStateOf(0)
@@ -283,7 +283,7 @@ fun rememberSignaturePadState(): SignaturePadComposeState = remember { Signature
  *
  * ```
  * val padState = rememberSignaturePadState()
- * SignaturePadCompose(
+ * SignaturePad(
  *     state = padState,
  *     modifier = Modifier.fillMaxWidth().height(240.dp),
  *     penColor = Color(0xFF1A2744),
@@ -301,7 +301,7 @@ fun rememberSignaturePadState(): SignaturePadComposeState = remember { Signature
  * 参数变化时不会中断当前手势。
  */
 @Composable
-fun SignaturePadCompose(
+fun SignaturePad(
     modifier: Modifier = Modifier,
     state: SignaturePadComposeState = rememberSignaturePadState(),
     penColor: Color = Color.Black,
@@ -420,4 +420,36 @@ fun SignaturePadCompose(
             )
         }
     }
+}
+
+@Deprecated("Use SignaturePad instead.", level = DeprecationLevel.HIDDEN)
+@Composable
+fun SignaturePadCompose(
+    modifier: Modifier = Modifier,
+    state: SignaturePadComposeState = rememberSignaturePadState(),
+    penColor: Color = Color.Black,
+    penWidth: Dp = 3.dp,
+    boardColor: Color = Color.White,
+    cornerRadius: Dp = 12.dp,
+    borderWidth: Dp = 1.dp,
+    borderColor: Color = Color(0xFFD9D1C7),
+    placeholder: String = "请在此处签名",
+    placeholderColor: Color = Color(0xFFB7B1A8),
+    placeholderFontSize: TextUnit = 15.sp,
+    onSigned: (Boolean) -> Unit = {},
+) {
+    SignaturePad(
+        modifier = modifier,
+        state = state,
+        penColor = penColor,
+        penWidth = penWidth,
+        boardColor = boardColor,
+        cornerRadius = cornerRadius,
+        borderWidth = borderWidth,
+        borderColor = borderColor,
+        placeholder = placeholder,
+        placeholderColor = placeholderColor,
+        placeholderFontSize = placeholderFontSize,
+        onSigned = onSigned,
+    )
 }

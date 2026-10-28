@@ -5,7 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.kuikly.signature.compose.SignaturePadCompose
+import com.kuikly.signature.compose.SignaturePad
 import com.kuikly.signature.compose.rememberSignaturePadState
 import com.tencent.kuikly.compose.ComposeContainer
 import com.tencent.kuikly.compose.extension.MakeKuiklyComposeNode
@@ -61,7 +61,7 @@ private fun SignaturePadComposeDemo() {
             color = Color(0xFF667085),
         )
         Spacer(modifier = Modifier.height(16.dp))
-        SignaturePadCompose(
+        SignaturePad(
             state = state,
             modifier = Modifier
                 .fillMaxWidth()
